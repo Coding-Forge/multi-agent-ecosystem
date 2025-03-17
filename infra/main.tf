@@ -68,14 +68,15 @@ resource "azurerm_storage_blob" "storage_blob" {
     type                   = "Block"
 }
 
-resource "azurerm_cognitive_account" "azure_openai" {
-    name                = "${var.environment}-azopenai-account"
+# Create Cognitive Services for Form Recognizer, OpenAI, and other services
+resource "azurerm_cognitive_account" "form_recognizer_account" {
+    name                = "${var.environment}-form-rec-account"
     resource_group_name = azurerm_resource_group.rg.name
     location            = azurerm_resource_group.rg.location
     sku_name            = "S1"
-    kind                = "CognitiveServices"
+    kind                = "FormRecognizer"
     public_network_access_enabled = var.deploy_vnet ? false : true
-    custom_subdomain_name = "${var.environment}-azopenai-account"
+    custom_subdomain_name = "${var.environment}-form-rec-account"
 
     tags                = merge(
         var.tags,
@@ -162,3 +163,130 @@ resource "azurerm_openai_deployment" "openai_deployment" {
     }
 }
 
+resource "azurerm_cognitive_account" "content_safety_account" {
+    name                = "${var.environment}-content-safety-account"
+    resource_group_name = azurerm_resource_group.rg.name
+    location            = azurerm_resource_group.rg.location
+    sku_name            = "S1"
+    kind                = "ContentSafety"
+    public_network_access_enabled = var.deploy_vnet ? false : true
+    custom_subdomain_name = "${var.environment}-content-safety-account"
+
+    tags                = merge(
+        var.tags,
+        {
+        environment = var.environment
+        }
+    )
+
+    identity {
+        type = "SystemAssigned"
+    }
+
+    network_acls {
+        default_action = "Allow"
+    }
+
+    lifecycle {
+        ignore_changes = [
+            # public_network_access_enabled,
+            # network_acls[0].default_action,
+            tags,
+        ]
+    }
+
+}
+resource "azurerm_cognitive_account" "speech_account" {
+    name                = "${var.environment}-speech-account"
+    resource_group_name = azurerm_resource_group.rg.name
+    location            = azurerm_resource_group.rg.location
+    sku_name            = "S1"
+    kind                = "SpeechServices"
+    public_network_access_enabled = var.deploy_vnet ? false : true
+    custom_subdomain_name = "${var.environment}-speech-account"
+
+    tags                = merge(
+        var.tags,
+        {
+        environment = var.environment
+        }
+    )
+
+    identity {
+        type = "SystemAssigned"
+    }
+
+    network_acls {
+        default_action = "Allow"
+    }
+
+    lifecycle {
+        ignore_changes = [
+            # public_network_access_enabled,
+            # network_acls[0].default_action,
+            tags,
+        ]
+    }
+}
+
+resource "azurerm_search_service" "ai_search_service" {
+    name                = "${var.environment}-search-service"
+    resource_group_name = azurerm_resource_group.rg.name
+    location            = azurerm_resource_group.rg.location
+    sku = "S1"
+    public_network_access_enabled = var.deploy_vnet ? false : true
+
+    tags                = merge(
+        var.tags,
+        {
+        environment = var.environment
+        }
+    )
+
+    identity {
+        type = "SystemAssigned"
+    }
+
+    timeouts {
+        create = "60m"
+        update = "60m"
+        read = "10m"
+    }
+
+    lifecycle {
+        ignore_changes = [
+            # public_network_access_enabled,
+            # network_acls[0].default_action,
+            tags,
+        ]
+    }   
+}
+
+resource "azurerm_key_vault" "key_vault" {
+    name                = "${var.environment}-keyvault"
+    resource_group_name = azurerm_resource_group.rg.name
+    location            = azurerm_resource_group.rg.location
+    sku_name            = "standard"
+    tenant_id           = var.tenant_id
+
+    tags                = merge(
+        var.tags,
+        {
+        environment = var.environment
+        }
+    )
+
+    lifecycle {
+        ignore_changes = [
+            # public_network_access_enabled,
+            # network_acls[0].default_action,
+            tags,
+        ]
+    }
+}
+
+resource "azurerm_key_vault_secret" "storage_account_secret" {
+    name = "${var.environment}-storage-account-secret"
+    value = azurerm_storage_account.storage_account.primary_connection_string
+    key_vault_id = azurerm_key_vault.key_vault.id
+}
