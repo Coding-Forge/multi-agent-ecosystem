@@ -1,0 +1,30 @@
+# Ignore virtual environment directories
+venv/
+.venv/
+env/
+.env/
+
+# Ignore Terraform directories and state files
+**/terraform/
+**/.terraform/
+**/*.tfstate
+**/*.tfstate.backup
+**/*.tfplan
+
+# Ignore Python cache files
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/*.pdb
+# Ignore Jupyter Notebook checkpoints
+**/.ipynb_checkpoints/
+# Ignore Jupyter Notebook metadata
+**/*.ipynb
+# Ignore Jupyter Notebook output
+**/*.out
+# Ignore Jupyter Notebook logs
+**/*.log
+# Ignore Jupyter Notebook checkpoints
+**/.ipynb_checkpoints/
+
