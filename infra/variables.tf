@@ -55,3 +55,20 @@ variable "subnet_address_space" {
   description = "The address space for the virtual network"
   type        = list(string)
 }
+
+variable "openai_deployments" {
+  description = "The OpenAI deployments to be created"
+  type        = list(object({
+    name            = string
+    model = object({
+      name = string
+        version = string
+
+    })
+    scale = object({
+      type     = string
+      capacity = number
+    })
+    rai_policy_name = string
+  }))
+}

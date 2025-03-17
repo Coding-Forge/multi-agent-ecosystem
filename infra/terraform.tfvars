@@ -16,3 +16,51 @@ tags = {
 
 vnet_name = "anvil-vnet"
 
+openai_deployments = [{
+    name = "gpt-35-turbo"
+    model = {
+        name = "gpt-35-turbo"
+        version = "latest"
+    }
+    scale = {
+        type = "Standard"
+        capacity = 1
+    }
+    rai_policy_name = "gpt-35-turbo-rai-policy"
+},
+{
+    name = "gpt-4"
+    model = {
+        name = "gpt-4"
+        version = "latest"
+    }
+    scale = {
+        type = "Standard"
+        capacity = 1
+    }
+    rai_policy_name = "gpt-4-rai-policy"
+},
+{
+    name = "gpt-4o"
+    model = {
+        name = "gpt-4o"
+        version = "latest"
+    }
+    scale = {
+        type = "Standard"
+        capacity = 1
+    }
+    rai_policy_name = "gpt-4o-rai-policy"
+},
+{
+    name = "text-embeddings-ada-002"
+    model = {
+        name = "text-embeddings-ada-002"
+        version = "latest"
+    }
+    scale = {
+        type = "Standard"
+        capacity = 1
+    }
+    rai_policy_name = "text-embeddings-ada-002-rai-policy"
+}]
