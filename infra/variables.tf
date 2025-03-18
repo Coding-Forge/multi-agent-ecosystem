@@ -58,11 +58,11 @@ variable "subnet_address_space" {
 
 variable "openai_deployments" {
   description = "The OpenAI deployments to be created"
-  type        = list(object({
-    name            = string
+  type = list(object({
+    name = string
     model = object({
-      name = string
-        version = string
+      name    = string
+      version = string
 
     })
     scale = object({
