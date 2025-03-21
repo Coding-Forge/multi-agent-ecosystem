@@ -12,7 +12,7 @@ variable "location" {
 }
 variable "subnet_address_space" {
     description = "The address space for the virtual network"
-    type        = list(string)
+    type        = string
 }
 variable "subnet_name" {
     description = "The name of the subnet"
