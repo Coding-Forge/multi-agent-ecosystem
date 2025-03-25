@@ -19,12 +19,12 @@ resource "azurerm_storage_container" "storage_container" {
   container_access_type = "private"
 }
 
-resource "azurerm_storage_blob" "storage_blob" {
-  name                   = var.storage_blob_name
-  storage_account_name   = azurerm_storage_account.storage_account.name
-  storage_container_name = azurerm_storage_container.storage_container.name
-  type                   = "Block"
-}
+# resource "azurerm_storage_blob" "storage_blob" {
+#   name                   = var.storage_blob_name
+#   storage_account_name   = azurerm_storage_account.storage_account.name
+#   storage_container_name = azurerm_storage_container.storage_container.name
+#   type                   = "Block"
+# }
 output "storage_account_name" {
   value = azurerm_storage_account.storage_account.name
 }
@@ -39,4 +39,7 @@ output "storage_account_id" {
 }
 output "storage_container_id" {
   value = azurerm_storage_container.storage_container.id
+}
+output "storage_container_name" {
+  value = azurerm_storage_container.storage_container.name
 }

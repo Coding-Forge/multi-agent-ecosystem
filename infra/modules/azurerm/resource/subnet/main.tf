@@ -35,3 +35,8 @@ variable "environment" {
     description = "The environment (e.g., dev, prod)"
     type        = string
 }
+variable "enable_delegation" {
+    description = "Enable delegation for the subnet"
+    type        = bool
+    default     = false
+}

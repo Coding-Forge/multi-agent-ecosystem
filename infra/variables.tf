@@ -56,8 +56,9 @@ variable "search_service_sku" {
 variable "subnet_deployment" {
   description = "The subnet deployment configuration"
   type = list(object({
-    name    = string
-    address = string
+    name              = string
+    address           = string
+    enable_delegation = optional(bool)
     # security   = string
     # nsg        = string
     # public_ip  = string
