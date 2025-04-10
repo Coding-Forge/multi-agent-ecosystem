@@ -1,5 +1,6 @@
 terraform {
   backend "azurerm" {
+    use_cli              = true
     use_azuread_auth     = true
     resource_group_name  = "templates"
     storage_account_name = "tfstate4codingforge"
@@ -13,6 +14,15 @@ terraform {
       version = "~> 4.0"
     }
   }
+}
+
+resource "random_integer" "random_0_to_5" {
+  min = 0
+  max = 5
+}
+
+locals {
+  suffix = "-${substr(md5(var.environment), random_integer.random_0_to_5.result, 4)}"
 }
 
 provider "azurerm" {
@@ -62,7 +72,6 @@ module "storage_account" {
   storage_blob_name             = var.storage_blob_name
 }
 
-
 module "storage_account_pe" {
   #   count                           = var.deploy_vnet ? 1 : 0
   source                          = "./modules/azurerm/resource/privateendpoints"
@@ -77,16 +86,70 @@ module "storage_account_pe" {
   deploy_private_endpoint         = var.deploy_vnet ? true : false
 }
 
+# resource "azurerm_eventgrid_domain" "event_grid_domain" {
+#   name                = "${var.environment}-event-grid-domain"
+#   resource_group_name = azurerm_resource_group.rg.name
+#   location            = azurerm_resource_group.rg.location
+
+#   tags = merge(
+#     var.tags,
+#     {
+#       environment = var.environment
+#     }
+#   )
+
+#   identity {
+#     type = "SystemAssigned"
+#   }
+
+#   lifecycle {
+#     ignore_changes = [
+#       tags,
+#     ]
+#   }
+# }
+
+resource "azurerm_storage_queue" "storage_queue" {
+  name                 = "${var.environment}-storage-queue"
+  storage_account_name = module.storage_account.storage_account_name
+
+  metadata = {
+    environment = var.environment
+  }
+}
+
+resource "azurerm_eventgrid_system_topic" "blob_topic" {
+  name                   = "my-blob-topic"
+  resource_group_name    = azurerm_resource_group.rg.name
+  location               = azurerm_resource_group.rg.location
+  topic_type             = "Microsoft.Storage.StorageAccounts"
+  source_arm_resource_id = module.storage_account.storage_account_id
+}
+
+resource "azurerm_eventgrid_event_subscription" "function_subscription" {
+  name                  = "blob-in-trigger"
+  scope                 = azurerm_eventgrid_system_topic.blob_topic.id
+  event_delivery_schema = "EventGridSchema"
+  included_event_types  = ["Microsoft.Storage.BlobCreated"]
+
+  storage_queue_endpoint {
+    storage_account_id = module.storage_account.storage_account_id
+    queue_name         = azurerm_storage_queue.storage_queue.name
+  }
+  # webhook_endpoint {
+  #   url = "https://${azurerm_linux_function_app.function_app.default_hostname}"
+  # }
+}
 
 # Create Cognitive Services for Form Recognizer, OpenAI, and other services
 resource "azurerm_cognitive_account" "form_recognizer_account" {
-  name                          = "${var.environment}-form-rec-account"
+  name                          = "${var.environment}-form-rec-account${local.suffix}"
   resource_group_name           = azurerm_resource_group.rg.name
   location                      = azurerm_resource_group.rg.location
   sku_name                      = "S0"
   kind                          = "FormRecognizer"
   public_network_access_enabled = var.deploy_vnet ? false : true
-  custom_subdomain_name         = "${var.environment}-form-rec-account"
+  custom_subdomain_name         = "${var.environment}-form-rec-account${local.suffix}"
 
   tags = merge(
     var.tags,
@@ -127,13 +190,13 @@ module "form_recognizer_pe" {
 }
 
 resource "azurerm_cognitive_account" "azure_openai_resource" {
-  name                          = "${var.environment}-azopenai-resource"
+  name                          = "${var.environment}-azopenai-resource${local.suffix}"
   resource_group_name           = azurerm_resource_group.rg.name
   location                      = azurerm_resource_group.rg.location
   sku_name                      = "S0"
   kind                          = "OpenAI"
   public_network_access_enabled = var.deploy_vnet ? false : true
-  custom_subdomain_name         = "${var.environment}-azopenai-resource"
+  custom_subdomain_name         = "${var.environment}-azopenai-resource${local.suffix}"
 
   tags = merge(
     var.tags,
@@ -174,13 +237,13 @@ module "azure_openai_pe" {
 }
 
 resource "azurerm_cognitive_account" "content_safety_account" {
-  name                          = "${var.environment}-content-safety-account"
+  name                          = "${var.environment}-content-safety-account${local.suffix}"
   resource_group_name           = azurerm_resource_group.rg.name
   location                      = azurerm_resource_group.rg.location
   sku_name                      = "S0"
   kind                          = "ContentSafety"
   public_network_access_enabled = var.deploy_vnet ? false : true
-  custom_subdomain_name         = "${var.environment}-content-safety-account"
+  custom_subdomain_name         = "${var.environment}-content-safety-account${local.suffix}"
 
   tags = merge(
     var.tags,
@@ -219,7 +282,6 @@ module "content_safety_pe" {
   subnet_id                       = module.subnet[var.subnet_deployment[0].name].subnet_id
   deploy_private_endpoint         = var.deploy_vnet
 }
-
 
 resource "azurerm_search_service" "ai_search_service" {
   name                          = var.search_service_name
@@ -452,12 +514,12 @@ module "admin_web_app_pe" {
 }
 
 resource "azurerm_linux_function_app" "function_app" {
-  name                                           = var.function_app_name
-  resource_group_name                            = azurerm_resource_group.rg.name
-  location                                       = azurerm_resource_group.rg.location
-  service_plan_id                                = azurerm_service_plan.service_plan.id
-  storage_account_name                           = module.storage_account.storage_account_name
-  storage_account_access_key                     = module.storage_account.primary_access_key
+  name                 = var.function_app_name
+  resource_group_name  = azurerm_resource_group.rg.name
+  location             = azurerm_resource_group.rg.location
+  service_plan_id      = azurerm_service_plan.service_plan.id
+  storage_account_name = module.storage_account.storage_account_name
+  # storage_account_access_key                     = module.storage_account.primary_access_key
   functions_extension_version                    = "~4"
   https_only                                     = true
   public_network_access_enabled                  = var.deploy_vnet ? false : true

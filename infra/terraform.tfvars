@@ -6,7 +6,7 @@ subscription_id = "7060853a-10fc-46c8-b90c-5bfe6e92e62f"
 
 resource_group_name = "multi-agent-ecosystem-rg"
 location            = "East US"
-environment         = "QA"
+environment         = "test" # only use lowercase letters, numbers, and hyphens
 tags = {
   environment = "dev"
   project     = "multi-agent-ecosystem"

@@ -215,7 +215,4 @@ variable "function_app_name" {
   description = "The name of the Function App"
   type        = string
 }
-variable "tfstatekey" {
-  description = "The key for the Terraform state storage account"
-  type        = string
-}
+
