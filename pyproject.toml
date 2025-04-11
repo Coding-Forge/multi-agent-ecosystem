@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "chat-with-your-data-solution-accelerator"
+name = "multi-agent-ecosystem"
 version = "1.1.0"
-description = "Chat with your data solution accelerator"
+description = "A multi agent ecosystem for demonstrating the use of agents and registering agents created by others"
 authors = []
 readme = "README.md"
 packages = [
@@ -44,6 +44,9 @@ azure-cosmos = "^4.7.0"
 asyncpg = "^0.30.0"
 psycopg2-binary = "^2.9.10"
 pgvector = "^0.3.6"
+
+[tool.poetry.requires-plugins]
+poetry-plugin-export = ">=1.8"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.4"

@@ -1,0 +1,24 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+
+name: multi-agent-ecosystem
+description: A multi-agent ecosystem for Azure services
+version: 1.0
+author: Brandon Campbell, Delbert Murphy
+
+services:
+  function:
+    project: ./application/functions
+    language: py
+    host: function
+    description: Azure Functions for the project
+
+    hooks:
+      prepackage:
+        windows:
+          shell: pwsh
+          run: poetry export -o requirements.txt; pip install -r requirements.txt
+        posix:
+          shell: sh
+          run: poetry export -o requirements.txt; pip install -r requirements.txt
+
+

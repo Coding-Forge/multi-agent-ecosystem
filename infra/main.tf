@@ -25,8 +25,8 @@ terraform {
 # }
 
 locals {
-  # suffix = "-${substr(md5(var.environment), random_integer.random_0_to_5.result, 4)}"
-  suffix = "-${substr(md5(var.environment), 3, 4)}"
+  suffix = "-${substr(md5(var.environment), random_integer.random_0_to_5.result, 4)}"
+  # suffix = "-${substr(md5(var.environment), 3, 4)}"
 }
 
 provider "azurerm" {
@@ -38,6 +38,12 @@ provider "azurerm" {
 resource "azurerm_resource_group" "rg" {
   name     = var.resource_group_name
   location = var.location
+
+  tags = {
+    "azd-env-name" = var.environment
+    "solution"     = "RAG"
+    "environment"  = var.environment
+  }
 }
 
 module "vnet" {

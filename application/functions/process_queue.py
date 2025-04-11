@@ -10,7 +10,7 @@ import azure.functions as func
 # from utilities.helpers.embedders.embedder_factory import EmbedderFactory
 # from utilities.search.search import Search
 
-# bp_batch_push_results = func.Blueprint()
+bp_batch_push_results = func.Blueprint()
 logger = logging.getLogger(__name__)
 logger.setLevel(level=os.environ.get("LOGLEVEL", "INFO").upper())
 
