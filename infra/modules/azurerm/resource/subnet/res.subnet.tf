@@ -32,7 +32,7 @@ resource "azurerm_network_security_group" "subnet_nsg" {
 
   security_rule {
     name                       = "DenyAllInBound"
-    priority                   = 65500
+    priority                   = 4090
     direction                  = "Inbound"
     access                     = "Deny"
     protocol                   = "*"
@@ -45,7 +45,7 @@ resource "azurerm_network_security_group" "subnet_nsg" {
 
   security_rule {
     name                       = "DenyAllOutBound"
-    priority                   = 65500
+    priority                   = 4090
     direction                  = "Outbound"
     access                     = "Deny"
     protocol                   = "*"
@@ -57,7 +57,7 @@ resource "azurerm_network_security_group" "subnet_nsg" {
 
   security_rule {
     name                       = "AllowVnetInBound"
-    priority                   = 65000
+    priority                   = 4000
     direction                  = "Inbound"
     access                     = "Allow"
     protocol                   = "*"
@@ -69,7 +69,7 @@ resource "azurerm_network_security_group" "subnet_nsg" {
 
   security_rule {
     name                       = "AllowVnetOutBound"
-    priority                   = 65000
+    priority                   = 4000
     direction                  = "Outbound"
     access                     = "Allow"
     protocol                   = "*"
@@ -81,7 +81,7 @@ resource "azurerm_network_security_group" "subnet_nsg" {
 
   security_rule {
     name                       = "AllowAzureLoadBalancerInBound"
-    priority                   = 65001
+    priority                   = 4001
     direction                  = "Inbound"
     access                     = "Allow"
     protocol                   = "*"
@@ -93,7 +93,7 @@ resource "azurerm_network_security_group" "subnet_nsg" {
 
   security_rule {
     name                       = "AllowInternetOutBound"
-    priority                   = 65001
+    priority                   = 4001
     direction                  = "Outbound"
     access                     = "Allow"
     protocol                   = "*"

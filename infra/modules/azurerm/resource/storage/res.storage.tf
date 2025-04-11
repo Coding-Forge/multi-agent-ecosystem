@@ -4,7 +4,14 @@ resource "azurerm_storage_account" "storage_account" {
   location                 = var.location
   account_tier             = var.storage_account_tier
   account_replication_type = var.storage_account_replication
-  public_network_access_enabled = var.deploy_vnet ? false : true
+  
+  network_rules {
+    default_action = var.public_network_access_enabled ? "Allow" : "Deny"
+    bypass         = ["AzureServices"]
+    ip_rules = var.public_network_access_enabled ? [] : [
+      "108.196.164.24"
+    ]
+  }
 
   tags = merge(
     var.tags,

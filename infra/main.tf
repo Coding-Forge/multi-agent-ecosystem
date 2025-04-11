@@ -11,18 +11,22 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 4.0"
+      version = "4.26.0"
+      # version = "~> 4.0"
     }
   }
+
+  required_version = "~> 1.11.0"
 }
 
-resource "random_integer" "random_0_to_5" {
-  min = 0
-  max = 5
-}
+# resource "random_integer" "random_0_to_5" {
+#   min = 0
+#   max = 5
+# }
 
 locals {
-  suffix = "-${substr(md5(var.environment), random_integer.random_0_to_5.result, 4)}"
+  # suffix = "-${substr(md5(var.environment), random_integer.random_0_to_5.result, 4)}"
+  suffix = "-${substr(md5(var.environment), 3, 4)}"
 }
 
 provider "azurerm" {
@@ -86,29 +90,6 @@ module "storage_account_pe" {
   deploy_private_endpoint         = var.deploy_vnet ? true : false
 }
 
-# resource "azurerm_eventgrid_domain" "event_grid_domain" {
-#   name                = "${var.environment}-event-grid-domain"
-#   resource_group_name = azurerm_resource_group.rg.name
-#   location            = azurerm_resource_group.rg.location
-
-#   tags = merge(
-#     var.tags,
-#     {
-#       environment = var.environment
-#     }
-#   )
-
-#   identity {
-#     type = "SystemAssigned"
-#   }
-
-#   lifecycle {
-#     ignore_changes = [
-#       tags,
-#     ]
-#   }
-# }
-
 resource "azurerm_storage_queue" "storage_queue" {
   name                 = "${var.environment}-storage-queue"
   storage_account_name = module.storage_account.storage_account_name
@@ -126,19 +107,31 @@ resource "azurerm_eventgrid_system_topic" "blob_topic" {
   source_arm_resource_id = module.storage_account.storage_account_id
 }
 
-resource "azurerm_eventgrid_event_subscription" "function_subscription" {
-  name                  = "blob-in-trigger"
-  scope                 = azurerm_eventgrid_system_topic.blob_topic.id
-  event_delivery_schema = "EventGridSchema"
-  included_event_types  = ["Microsoft.Storage.BlobCreated"]
+resource "azurerm_eventgrid_system_topic_event_subscription" "function_subscription" {
+  name                = "blob-in-trigger"
+  system_topic        = azurerm_eventgrid_system_topic.blob_topic.name
+  resource_group_name = azurerm_resource_group.rg.name
 
   storage_queue_endpoint {
-    storage_account_id = module.storage_account.storage_account_id
-    queue_name         = azurerm_storage_queue.storage_queue.name
+    queue_message_time_to_live_in_seconds = -1
+    storage_account_id                    = module.storage_account.storage_account_id
+    queue_name                            = azurerm_storage_queue.storage_queue.name
   }
-  # webhook_endpoint {
-  #   url = "https://${azurerm_linux_function_app.function_app.default_hostname}"
-  # }
+
+  subject_filter {
+    subject_begins_with = "/blobServices/default/containers/${module.storage_account.storage_container_name}/blobs/"
+  }
+
+  retry_policy {
+    max_delivery_attempts = 30
+    event_time_to_live    = 1440
+  }
+  event_delivery_schema = "EventGridSchema"
+
+  included_event_types = [
+    "Microsoft.Storage.BlobCreated",
+    "Microsoft.Storage.BlobDeleted"
+  ]
 }
 
 # Create Cognitive Services for Form Recognizer, OpenAI, and other services
