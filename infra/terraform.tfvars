@@ -5,7 +5,7 @@ tenant_id       = "922fd3f2-2199-4d31-b069-9733c4a14c63"
 subscription_id = "7060853a-10fc-46c8-b90c-5bfe6e92e62f"
 
 resource_group_name = "multi-agent-ecosystem-rg"
-location            = "East US"
+location            = "eastus2"
 environment         = "test" # only use lowercase letters, numbers, and hyphens
 tags = {
   environment = "dev"
@@ -122,8 +122,12 @@ function_app_name  = "multi-agent-function-app"
 
 
 ################################################################################
-# VM Configuration
+# DevBox Configuration
 ################################################################################
+host_os = "linux"
+
+
+
 # vm_name                 = "multi-agent-vm"
 # vm_size                 = "Standard_DS2_v2"
 # vm_admin_username       = "azureuser"

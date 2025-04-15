@@ -19,14 +19,14 @@ terraform {
   required_version = "~> 1.11.0"
 }
 
-# resource "random_integer" "random_0_to_5" {
-#   min = 0
-#   max = 5
-# }
+resource "random_integer" "random_0_to_5" {
+  min = 0
+  max = 8
+}
 
 locals {
-  suffix = "-${substr(md5(var.environment), random_integer.random_0_to_5.result, 4)}"
-  # suffix = "-${substr(md5(var.environment), 3, 4)}"
+  # suffix = "-${substr(md5(var.environment), random_integer.random_0_to_5.result, 4)}"
+  suffix = "-${substr(md5(var.environment), 5, 4)}"
 }
 
 provider "azurerm" {
@@ -587,6 +587,170 @@ module "function_app_pe" {
   deploy_private_endpoint         = var.deploy_vnet
 }
 
+resource "azurerm_public_ip" "pip" {
+  name                = "${azurerm_resource_group.rg.name}-pip"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  allocation_method   = "Static"
+
+  tags = {
+    environment = "dev"
+  }
+}
+
+resource "azurerm_network_interface" "nic" {
+  name                = "${azurerm_resource_group.rg.name}-nic"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+
+  ip_configuration {
+    name                          = "${azurerm_resource_group.rg.name}-ipconfig"
+    subnet_id                     = module.subnet[var.subnet_deployment[0].name].subnet_id
+    private_ip_address_allocation = "Dynamic"
+    public_ip_address_id          = azurerm_public_ip.pip.id
+  }
+
+  tags = {
+    environment = "dev"
+  }
+}
+
+# resource "azurerm_windows_virtual_machine" "devbox-vm" {
+#   name                = "win-devbox-vm"
+#   resource_group_name = azurerm_resource_group.rg.name
+#   location            = azurerm_resource_group.rg.location
+#   size                = "Standard_DS2_v2"
+#   admin_username      = "adminuser"
+#   network_interface_ids = [azurerm_network_interface.nic.id]
+
+#   custom_data = filebase64("./devbox/custom_data.tpl")
+
+#   admin_password = "P@ssw0rd1234!"
+
+#   os_disk {
+#     caching              = "ReadWrite"
+#     storage_account_type = "Standard_LRS"
+#   }
+
+#   source_image_reference {
+#     publisher = "MicrosoftWindowsServer"
+#     offer     = "WindowsServer"
+#     sku       = "2022-Datacenter"
+#     version   = "latest"
+#   }
+
+#   provisioner "local-exec" {
+#     command = templatefile("./devbox/${var.host_os}-ssh-scripts.tpl", {
+#       hostname     = self.public_ip_address,
+#       user         = "adminuser",
+#       identityfile = "~/.ssh/devbox"
+#     })
+#     interpreter = var.host_os == "linux" ? ["bash", "-c"] : ["Powershell", "-Command"]
+#   }
+
+#   tags = {
+#     environment = "dev"
+#   }  
+# }
+
+resource "azurerm_linux_virtual_machine" "devbox-vm" {
+  name                  = "${azurerm_resource_group.rg.name}-vm"
+  resource_group_name   = azurerm_resource_group.rg.name
+  location              = azurerm_resource_group.rg.location
+  size                  = "Standard_DS2_v2"
+  admin_username        = "adminuser"
+  network_interface_ids = [azurerm_network_interface.nic.id]
+
+  custom_data = filebase64("./devbox/custom_data.tpl")
+
+  admin_ssh_key {
+    username   = "adminuser"
+    public_key = file("~/.ssh/devbox.pub")
+  }
+
+  os_disk {
+    caching              = "ReadWrite"
+    storage_account_type = "Standard_LRS"
+  }
+
+  source_image_reference {
+    publisher = "canonical"
+    offer     = "0001-com-ubuntu-server-jammy"
+    sku       = "22_04-lts-gen2"
+    version   = "latest"
+  }
+
+  provisioner "local-exec" {
+    command = templatefile("./devbox/${var.host_os}-ssh-scripts.tpl", {
+      hostname     = self.public_ip_address,
+      user         = "adminuser",
+      identityfile = "~/.ssh/devbox"
+    })
+    interpreter = var.host_os == "linux" ? ["bash", "-c"] : ["Powershell", "-Command"]
+  }
+
+  tags = {
+    environment = "dev"
+  }
+}
+
+data "azurerm_public_ip" "chat-ip-data" {
+  name                = azurerm_public_ip.pip.name
+  resource_group_name = azurerm_resource_group.rg.name
+}
+
+output "public_ip_address" {
+  value = "${azurerm_linux_virtual_machine.devbox-vm.name}: ${data.azurerm_public_ip.chat-ip-data.ip_address}"
+  # value = "${azurerm_windows_virtual_machine.devbox-vm.name}: ${data.azurerm_public_ip.chat-ip-data.ip_address}"
+}
+
+# resource "azurerm_cognitive_account" "speech_account" {
+#   name                          = "${var.environment}-speech-account"
+#   resource_group_name           = azurerm_resource_group.rg.name
+#   location                      = azurerm_resource_group.rg.location
+#   sku_name                      = "S0"
+#   kind                          = "SpeechServices"
+#   public_network_access_enabled = var.deploy_vnet ? false : true
+#   custom_subdomain_name         = "${var.environment}-speech-account"
+
+#   tags = merge(
+#     var.tags,
+#     {
+#       environment = var.environment
+#     }
+#   )
+
+#   identity {
+#     type = "SystemAssigned"
+#   }
+
+#   network_acls {
+#     default_action = "Allow"
+#   }
+
+#   lifecycle {
+#     ignore_changes = [
+#       # public_network_access_enabled,
+#       # network_acls[0].default_action,
+#       tags,
+#     ]
+#   }
+# }
+
+# # module "speech_pe" {
+# #   count                           = var.deploy_vnet ? 1 : 0
+# #   source                          = "./modules/azurerm/resource/privateendpoints"
+# #   private_endpoint_name           = "${var.environment}-pe-speech-account"
+# #   location                        = azurerm_resource_group.rg.location
+# #   resource_group_name             = azurerm_resource_group.rg.name
+# #   private_service_connection_name = "speech-account-connection"
+# #   private_connection_resource_id  = azurerm_cognitive_account.speech_account.id
+# #   subresource_names               = ["SpeechServices"]
+# #   environment                     = var.environment
+# # #   subnet_id                       = module.subnet[var.subnet_deployment[1].name].subnet_id
+# # }
+
+
 # resource "azurerm_application_insights" "app_insights" {
 #   name                = "${var.environment}-app-insights"
 #   resource_group_name = azurerm_resource_group.rg.name
@@ -662,92 +826,4 @@ module "function_app_pe" {
 # #   source_address_prefixes     = ["108.196.164.24"]
 # #   destination_address_prefix  = "*"
 # #   network_security_group_name = azurerm_network_security_group.vm_nsg.name
-# # }
-
-# # resource "azurerm_public_ip" "vm_public_ip" {
-# #   name                = "my-vm-public-ip"
-# #   resource_group_name = azurerm_resource_group.rg.name
-# #   location            = azurerm_resource_group.rg.location
-# #   allocation_method   = "Dynamic"
-# # }
-
-# # resource "azurerm_network_interface" "vm_nic" {
-# #   name                = "my-vm-nic"
-# #   resource_group_name = azurerm_resource_group.rg.name
-# #   location            = azurerm_resource_group.rg.location
-# #   ip_configuration {
-# #     name                          = "my-vm-ipconfig"
-# #     subnet_id                     = azurerm_subnet.subnet.id
-# #     private_ip_address_allocation = "Dynamic"
-# #     public_ip_address_id          = azurerm_public_ip.vm_public_ip.id
-# #   }
-# # }
-
-# # resource "azurerm_windows_virtual_machine" "vm" {
-# #   name                = "my-windows-vm"
-# #   resource_group_name = azurerm_resource_group.rg.name
-# #   location            = azurerm_resource_group.rg.location
-# #   os_disk {
-# #     caching              = "ReadWrite"
-# #     storage_account_type = abs(azurerm_storage_account.storage_account.sku_name, "Standard_LRS")
-# #     disk_size_gb         = 30
-# #   }
-# #   size                  = "Standard_D2s_v3"
-# #   admin_username        = "azureuser"
-# #   admin_password        = "StrongP@ssw0rd!"
-# #   network_interface_ids = [azurerm_network_interface.vm_nic.id]
-
-# #   source_image_reference {
-# #     publisher = "MicrosoftWindowsServer"
-# #     offer     = "WindowsServer"
-# #     sku       = "2022-Datacenter"
-# #     version   = "latest"
-# #   }
-# # }
-
-
-# resource "azurerm_cognitive_account" "speech_account" {
-#   name                          = "${var.environment}-speech-account"
-#   resource_group_name           = azurerm_resource_group.rg.name
-#   location                      = azurerm_resource_group.rg.location
-#   sku_name                      = "S0"
-#   kind                          = "SpeechServices"
-#   public_network_access_enabled = var.deploy_vnet ? false : true
-#   custom_subdomain_name         = "${var.environment}-speech-account"
-
-#   tags = merge(
-#     var.tags,
-#     {
-#       environment = var.environment
-#     }
-#   )
-
-#   identity {
-#     type = "SystemAssigned"
-#   }
-
-#   network_acls {
-#     default_action = "Allow"
-#   }
-
-#   lifecycle {
-#     ignore_changes = [
-#       # public_network_access_enabled,
-#       # network_acls[0].default_action,
-#       tags,
-#     ]
-#   }
-# }
-
-# # module "speech_pe" {
-# #   count                           = var.deploy_vnet ? 1 : 0
-# #   source                          = "./modules/azurerm/resource/privateendpoints"
-# #   private_endpoint_name           = "${var.environment}-pe-speech-account"
-# #   location                        = azurerm_resource_group.rg.location
-# #   resource_group_name             = azurerm_resource_group.rg.name
-# #   private_service_connection_name = "speech-account-connection"
-# #   private_connection_resource_id  = azurerm_cognitive_account.speech_account.id
-# #   subresource_names               = ["SpeechServices"]
-# #   environment                     = var.environment
-# # #   subnet_id                       = module.subnet[var.subnet_deployment[1].name].subnet_id
 # # }

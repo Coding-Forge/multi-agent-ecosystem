@@ -216,3 +216,7 @@ variable "function_app_name" {
   type        = string
 }
 
+variable "host_os" {
+  type    = string
+  default = "linux"
+}

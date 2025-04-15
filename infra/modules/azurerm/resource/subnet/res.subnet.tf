@@ -5,9 +5,6 @@ resource "azurerm_subnet" "subnet" {
   address_prefixes     = [var.subnet_address_space]
 
 
-
-
-
   # is there a way to logically add a delegation to the subnet?
   dynamic "delegation" {
     for_each = var.enable_delegation ? [1] : []
@@ -101,6 +98,19 @@ resource "azurerm_network_security_group" "subnet_nsg" {
     destination_port_range     = "*"
     source_address_prefix      = "*"
     destination_address_prefix = "Internet"
+  }
+
+  security_rule {
+    name                       = "AllowSSH"
+    priority                   = 4095
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "22"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+
   }
 }
 

@@ -30,3 +30,16 @@ https://apt.releases.hashicorp.com $(lsb_release -cs) main" | \
 sudo tee /etc/apt/sources.list.d/hashicorp.list
 sudo apt update
 sudo apt-get install terraform
+sudo apt install xfce4 gdm3
+sudo apt install -y xfce4-goodies
+sudo apt install -y xfce4-terminal
+sudo apt install -y xfce4-screensaver
+sudo apt install -y xfce4-whiskermenu-plugin
+sudo apt install -y xfce4-appfinder
+sudo apt install -y xfce4-notes-plugin
+sudo apt install -y xfce4-clipman-plugin
+sudo apt install -y xfce4-battery-plugin
+sudo apt install -y xfce4-cpufreq-plugin
+sudo apt install -y xfce4-datetime-plugin
+sudo apt install -y xfce4-diskperf-plugin
+sudo reboot
