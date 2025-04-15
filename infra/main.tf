@@ -19,14 +19,14 @@ terraform {
   required_version = "~> 1.11.0"
 }
 
-resource "random_integer" "random_0_to_5" {
+resource "random_integer" "random_0_to_10" {
   min = 0
-  max = 8
+  max = 10
 }
 
 locals {
-  # suffix = "-${substr(md5(var.environment), random_integer.random_0_to_5.result, 4)}"
-  suffix = "-${substr(md5(var.environment), 5, 4)}"
+  suffix = "-${substr(md5(var.environment), random_integer.random_0_to_10.result, 4)}"
+  # suffix = "-${substr(md5(var.environment), 5, 4)}"
 }
 
 provider "azurerm" {
@@ -654,17 +654,18 @@ resource "azurerm_network_interface" "nic" {
 # }
 
 resource "azurerm_linux_virtual_machine" "devbox-vm" {
-  name                  = "${azurerm_resource_group.rg.name}-vm"
+  name                  = "${var.vm_name}-vm"
   resource_group_name   = azurerm_resource_group.rg.name
   location              = azurerm_resource_group.rg.location
-  size                  = "Standard_DS2_v2"
-  admin_username        = "adminuser"
+  size                  = var.vm_size
+  admin_password        = var.vm_admin_password
+  admin_username        = var.vm_admin_username
   network_interface_ids = [azurerm_network_interface.nic.id]
 
   custom_data = filebase64("./devbox/custom_data.tpl")
 
   admin_ssh_key {
-    username   = "adminuser"
+    username   = var.vm_admin_username
     public_key = file("~/.ssh/devbox.pub")
   }
 
@@ -683,7 +684,7 @@ resource "azurerm_linux_virtual_machine" "devbox-vm" {
   provisioner "local-exec" {
     command = templatefile("./devbox/${var.host_os}-ssh-scripts.tpl", {
       hostname     = self.public_ip_address,
-      user         = "adminuser",
+      user         = var.vm_admin_username,
       identityfile = "~/.ssh/devbox"
     })
     interpreter = var.host_os == "linux" ? ["bash", "-c"] : ["Powershell", "-Command"]

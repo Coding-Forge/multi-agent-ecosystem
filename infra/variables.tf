@@ -104,22 +104,22 @@ variable "storage_blob_name" {
 #########################################################
 # VM Variables
 #########################################################
-# variable "vm_name" {
-#   description = "The name of the VM"
-#   type        = string
-# }
-# variable "vm_size" {
-#   description = "The size of the VM"
-#   type        = string
-# }
-# variable "vm_admin_username" {
-#   description = "The admin username for the VM"
-#   type        = string
-# }
-# variable "vm_admin_password" {
-#   description = "The admin password for the VM"
-#   type        = string
-# }
+variable "vm_name" {
+  description = "The name of the VM"
+  type        = string
+}
+variable "vm_size" {
+  description = "The size of the VM"
+  type        = string
+}
+variable "vm_admin_username" {
+  description = "The admin username for the VM"
+  type        = string
+}
+variable "vm_admin_password" {
+  description = "The admin password for the VM"
+  type        = string
+}
 # variable "vm_image_publisher" {
 #   description = "The publisher of the VM image"
 #   type        = string
