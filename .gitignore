@@ -29,4 +29,4 @@ env/
 # Ignore Jupyter Notebook checkpoints
 **/.ipynb_checkpoints/
 
-application/functions/function_env
+application/functions/functions_env
