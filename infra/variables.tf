@@ -120,6 +120,14 @@ variable "vm_admin_password" {
   description = "The admin password for the VM"
   type        = string
 }
+variable "vm_nic_name" {
+  description = "The name of the network interface"
+  type        = string
+}
+variable "vm_ip_configuration_name" {
+  description = "The name of the IP configuration"
+  type        = string
+}
 # variable "vm_image_publisher" {
 #   description = "The publisher of the VM image"
 #   type        = string

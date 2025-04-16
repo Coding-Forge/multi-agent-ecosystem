@@ -587,123 +587,30 @@ module "function_app_pe" {
   deploy_private_endpoint         = var.deploy_vnet
 }
 
-resource "azurerm_public_ip" "pip" {
-  name                = "${azurerm_resource_group.rg.name}-pip"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
-  allocation_method   = "Static"
-
-  tags = {
-    environment = "dev"
-  }
-}
-
-resource "azurerm_network_interface" "nic" {
-  name                = "${azurerm_resource_group.rg.name}-nic"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
-
-  ip_configuration {
-    name                          = "${azurerm_resource_group.rg.name}-ipconfig"
-    subnet_id                     = module.subnet[var.subnet_deployment[0].name].subnet_id
-    private_ip_address_allocation = "Dynamic"
-    public_ip_address_id          = azurerm_public_ip.pip.id
-  }
-
-  tags = {
-    environment = "dev"
-  }
-}
-
-# resource "azurerm_windows_virtual_machine" "devbox-vm" {
-#   name                = "win-devbox-vm"
-#   resource_group_name = azurerm_resource_group.rg.name
-#   location            = azurerm_resource_group.rg.location
-#   size                = "Standard_DS2_v2"
-#   admin_username      = "adminuser"
-#   network_interface_ids = [azurerm_network_interface.nic.id]
-
-#   custom_data = filebase64("./devbox/custom_data.tpl")
-
-#   admin_password = "P@ssw0rd1234!"
-
-#   os_disk {
-#     caching              = "ReadWrite"
-#     storage_account_type = "Standard_LRS"
-#   }
-
-#   source_image_reference {
-#     publisher = "MicrosoftWindowsServer"
-#     offer     = "WindowsServer"
-#     sku       = "2022-Datacenter"
-#     version   = "latest"
-#   }
-
-#   provisioner "local-exec" {
-#     command = templatefile("./devbox/${var.host_os}-ssh-scripts.tpl", {
-#       hostname     = self.public_ip_address,
-#       user         = "adminuser",
-#       identityfile = "~/.ssh/devbox"
-#     })
-#     interpreter = var.host_os == "linux" ? ["bash", "-c"] : ["Powershell", "-Command"]
-#   }
-
-#   tags = {
-#     environment = "dev"
-#   }  
-# }
-
-resource "azurerm_linux_virtual_machine" "devbox-vm" {
-  name                  = "${var.vm_name}-vm"
-  resource_group_name   = azurerm_resource_group.rg.name
-  location              = azurerm_resource_group.rg.location
-  size                  = var.vm_size
-  admin_password        = var.vm_admin_password
-  admin_username        = var.vm_admin_username
-  network_interface_ids = [azurerm_network_interface.nic.id]
-
-  custom_data = filebase64("./devbox/custom_data.tpl")
-
-  admin_ssh_key {
-    username   = var.vm_admin_username
-    public_key = file("~/.ssh/devbox.pub")
-  }
-
-  os_disk {
-    caching              = "ReadWrite"
-    storage_account_type = "Standard_LRS"
-  }
-
-  source_image_reference {
-    publisher = "canonical"
-    offer     = "0001-com-ubuntu-server-jammy"
-    sku       = "22_04-lts-gen2"
-    version   = "latest"
-  }
-
-  provisioner "local-exec" {
-    command = templatefile("./devbox/${var.host_os}-ssh-scripts.tpl", {
-      hostname     = self.public_ip_address,
-      user         = var.vm_admin_username,
-      identityfile = "~/.ssh/devbox"
-    })
-    interpreter = var.host_os == "linux" ? ["bash", "-c"] : ["Powershell", "-Command"]
-  }
-
-  tags = {
-    environment = "dev"
-  }
-}
-
-data "azurerm_public_ip" "chat-ip-data" {
-  name                = azurerm_public_ip.pip.name
-  resource_group_name = azurerm_resource_group.rg.name
+module "devbox-vm" {
+  source                      = "./modules/devbox"
+  host_os                     = var.host_os
+  resource_group_name         = azurerm_resource_group.rg.name
+  location                    = azurerm_resource_group.rg.location
+  vnet_name                   = module.vnet.vnet_name
+  subnet_name                 = module.subnet[var.subnet_deployment[0].name].subnet_name
+  subnet_id                   = module.subnet[var.subnet_deployment[0].name].subnet_id
+  network_security_group_name = module.subnet[var.subnet_deployment[0].name].network_security_group_name
+  vm_admin_password           = var.vm_admin_password
+  vm_admin_username           = var.vm_admin_username
+  vm_name                     = var.vm_name
+  vm_size                     = var.vm_size
+  nic_name                    = var.vm_nic_name
+  environment                 = var.environment
+  ip_configuration_name       = var.vm_ip_configuration_name
 }
 
 output "public_ip_address" {
-  value = "${azurerm_linux_virtual_machine.devbox-vm.name}: ${data.azurerm_public_ip.chat-ip-data.ip_address}"
-  # value = "${azurerm_windows_virtual_machine.devbox-vm.name}: ${data.azurerm_public_ip.chat-ip-data.ip_address}"
+  value = "${module.devbox-vm.name}: ${module.devbox-vm.public_ip_address}"
 }
+
+
+
 
 # resource "azurerm_cognitive_account" "speech_account" {
 #   name                          = "${var.environment}-speech-account"

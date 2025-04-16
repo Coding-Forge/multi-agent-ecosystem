@@ -42,3 +42,13 @@ variable "subnet_id" {
   description = "The ID of the subnet"
   type        = string
 }
+variable "public_ip_address_id" {
+  description = "The ID of the public IP address"
+  type        = string
+  default     = ""
+}
+variable "has_public_ip" {
+  description = "Whether the network interface has a public IP address"
+  type        = bool
+  default     = false
+}
