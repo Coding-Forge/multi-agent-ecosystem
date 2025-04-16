@@ -18,7 +18,8 @@ module "devbox_nic"{
   resource_group_name = var.resource_group_name
   subnet_name = var.subnet_name
   vnet_name = var.vnet_name
-
+  has_public_ip = var.vm_has_public_ip
+  public_ip_address_id = azurerm_public_ip.pip.id
   subnet_id = var.subnet_id
   
   tags = {
@@ -65,7 +66,7 @@ resource "azurerm_linux_virtual_machine" "devbox-vm" {
     module.devbox_nic.network_interface_id
   ]
 
-  custom_data = filebase64("scripts/custom_data.tpl")
+  custom_data = filebase64("${path.module}/scripts/custom_data.tpl")
 
   identity {
     type = "SystemAssigned"
@@ -89,7 +90,7 @@ resource "azurerm_linux_virtual_machine" "devbox-vm" {
   }
 
   provisioner "local-exec" {
-    command = templatefile("./scripts/${var.host_os}-ssh-scripts.tpl", {
+    command = templatefile("${path.module}/scripts/${var.host_os}-ssh-scripts.tpl", {
       hostname     = self.public_ip_address,
       user         = var.vm_admin_username,
       identityfile = "~/.ssh/devbox"
@@ -104,15 +105,21 @@ resource "azurerm_linux_virtual_machine" "devbox-vm" {
 
 data "azurerm_public_ip" "chat-ip-data" {
   name                = azurerm_public_ip.pip.name
-  resource_group_name = azurerm_resource_group.rg.name
+  resource_group_name = var.resource_group_name
 }
 
 resource "azurerm_virtual_machine_extension" "aad_login" {
   name                 = "AADLoginForLinux"
   virtual_machine_id   = azurerm_linux_virtual_machine.devbox-vm.id
-  publisher            = "Microsoft.Azure.ActiveDirectory"
+  publisher            = "Microsoft.Azure.ActiveDirectory.LinuxSSH"
   type                 = "AADLoginForLinux"
   type_handler_version = "1.0"
+  auto_upgrade_minor_version = true
+  settings = jsonencode(
+    {
+        "username": "${var.vm_admin_username}",
+        "ssh_key": "${file("~/.ssh/devbox.pub")}"
+    })
 }
 
 output "public_ip_address" {

@@ -128,6 +128,11 @@ variable "vm_ip_configuration_name" {
   description = "The name of the IP configuration"
   type        = string
 }
+variable "vm_has_public_ip" {
+  description = "Whether the VM has a public IP address"
+  type        = bool
+  default     = false
+}
 # variable "vm_image_publisher" {
 #   description = "The publisher of the VM image"
 #   type        = string

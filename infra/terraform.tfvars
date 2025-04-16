@@ -131,6 +131,7 @@ vm_admin_username        = "azureuser"
 vm_admin_password        = "P@s$w0rD1234!"
 vm_nic_name              = "DevBoxNIC"
 vm_ip_configuration_name = "devbox-ip-config"
+vm_has_public_ip        = true
 # vm_image_publisher      = "Canonical"
 # vm_image_offer          = "UbuntuServer"
 # vm_image_sku            = "24.04-LTS"

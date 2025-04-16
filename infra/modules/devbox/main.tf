@@ -67,3 +67,8 @@ variable "ip_configuration_name" {
   type        = string
   default     = "internal"
 }
+variable "vm_has_public_ip" {
+  description = "Whether the virtual machine has a public IP address."
+  type        = bool
+  default     = false
+}

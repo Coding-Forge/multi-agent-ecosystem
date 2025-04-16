@@ -603,6 +603,7 @@ module "devbox-vm" {
   nic_name                    = var.vm_nic_name
   environment                 = var.environment
   ip_configuration_name       = var.vm_ip_configuration_name
+  vm_has_public_ip            = var.vm_has_public_ip
 }
 
 output "public_ip_address" {
