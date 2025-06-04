@@ -1,5 +1,5 @@
 [project]
-name = "mfg"
+name = "mae3"
 version = "0.1.0"
 description = "Multi Agent ecosystem within a secured environment that includes a linux vm jump box for dev work"
 authors = [
