@@ -15,7 +15,6 @@ terraform {
       # version = "~> 4.0"
     }
   }
-
   required_version = "~> 1.11.0"
 }
 
@@ -352,16 +351,14 @@ resource "azurerm_service_plan" "service_plan" {
   }
 }
 
-resource "azurerm_linux_web_app" "web_app" {
-  name                                           = var.web_app_name
-  resource_group_name                            = azurerm_resource_group.rg.name
-  location                                       = azurerm_resource_group.rg.location
-  service_plan_id                                = azurerm_service_plan.service_plan.id
-  ftp_publish_basic_authentication_enabled       = false
-  https_only                                     = true
-  public_network_access_enabled                  = var.deploy_vnet ? false : true
-  virtual_network_subnet_id                      = module.subnet[var.subnet_deployment[1].name].subnet_id
-  webdeploy_publish_basic_authentication_enabled = false
+module "azure_linux_web_app" {
+  source = "./modules/azurerm/resource/webbApps"
+  web_app_name = var.web_app_name
+  service_plan_id = azurerm_service_plan.service_plan.id
+  resource_group_name = azurerm_resource_group.rg.name
+  resource_group_location = azurerm_resource_group.rg.location
+  public_network_access_enabled = var.deploy_vnet ? false : true
+  environment = var.environment
   app_settings = {
     "AZURE_BLOB_STORAGE_CONNECTION_STRING" = module.storage_account.storage_connection_string
     "AZURE_BLOB_STORAGE_CONTAINER_NAME"    = module.storage_account.storage_container_name
@@ -371,7 +368,7 @@ resource "azurerm_linux_web_app" "web_app" {
     "WEBSITE_WEBDEPLOY_USE_SCM"            = "false"
   }
 
-  site_config {
+  site_config = {
     always_on                         = true
     http2_enabled                     = true
     ip_restriction_default_action     = "Allow"
@@ -379,33 +376,15 @@ resource "azurerm_linux_web_app" "web_app" {
     use_32_bit_worker                 = false
     vnet_route_all_enabled            = true
     app_command_line                  = "npm start"
-    cors {
+    cors                              = {
       allowed_origins     = ["https://portal.azure.com"]
       support_credentials = true
     }
-    application_stack {
+    application_stack                 = {
       python_version = "3.12"
     }
   }
-  identity {
-    type = "SystemAssigned"
-  }
-  tags = merge(
-    var.tags,
-    {
-      environment      = var.environment
-      azd-env-name     = var.environment
-      azd-service-name = "web"
-      solution         = "RAG"
-    }
-  )
-  lifecycle {
-    ignore_changes = [
-      app_settings,
-      tags,
-    ]
-  }
-  logs {
+  logs = {
     detailed_error_messages = true
     failed_request_tracing  = true
     application_logs {
@@ -418,6 +397,39 @@ resource "azurerm_linux_web_app" "web_app" {
       }
     }
   }
+  identity = "SystemAssigned"
+  tags = merge(
+    var.tags,
+    {
+      environment      = var.environment
+      azd-env-name     = var.environment
+      azd-service-name = "adminweb"
+      solution         = "RAG"
+    }
+  )
+  lifecycle = {
+    ignore_changes = [
+      app_settings,
+      tags,
+    ]
+  }
+}
+
+module "linux_web_app_deployment_slot_dev" {
+  source = "./modules/azurerm/resource/webAppsSlots"
+  web_app_name = var.web_app_name
+  slot_name = "dev"
+  app_service_id = module.azurerm_linux_web_app.web_app.id
+  service_plan_id = azurerm_service_plan.service_plan.id
+  app_settings = {
+    "AZURE_BLOB_STORAGE_CONNECTION_STRING" = module.storage_account.storage_connection_string
+    "AZURE_BLOB_STORAGE_CONTAINER_NAME"    = module.storage_account.storage_container_name
+    "AZURE_BLOB_STORAGE_ACCOUNT_NAME"      = module.storage_account.storage_account_name
+    "WEBSITE_RUN_FROM_PACKAGE"             = "1"
+    "WEBSITE_NODE_DEFAULT_VERSION"         = "18"
+    "WEBSITE_WEBDEPLOY_USE_SCM"            = "false"
+  }  
+  identity_type = "SystemAssigned"
 }
 
 module "web_app_pe" {
@@ -427,13 +439,78 @@ module "web_app_pe" {
   location                        = azurerm_resource_group.rg.location
   resource_group_name             = azurerm_resource_group.rg.name
   private_service_connection_name = "web-app-connection"
-  private_connection_resource_id  = azurerm_linux_web_app.web_app.id
+  private_connection_resource_id  = module.azure_linux_web_app.web_app_id
   subresource_names               = ["sites"]
   environment                     = var.environment
   subnet_id                       = module.subnet[var.subnet_deployment[0].name].subnet_id
   deploy_private_endpoint         = var.deploy_vnet
 
 }
+
+module "linux_web_app_admin" {
+  source = "./modules/azurerm/resource/webbApps"
+  web_app_name = var.admin_web_app_name
+  service_plan_id = azurerm_service_plan.service_plan.id
+  resource_group_name = azurerm_resource_group.rg.name
+  resource_group_location = azurerm_resource_group.rg.location
+  public_network_access_enabled = var.deploy_vnet ? false : true
+  environment = var.environment
+  app_settings = {
+    "AZURE_BLOB_STORAGE_CONNECTION_STRING" = module.storage_account.storage_connection_string
+    "AZURE_BLOB_STORAGE_CONTAINER_NAME"    = module.storage_account.storage_container_name
+    "AZURE_BLOB_STORAGE_ACCOUNT_NAME"      = module.storage_account.storage_account_name
+    "WEBSITE_RUN_FROM_PACKAGE"             = "1"
+    "WEBSITE_NODE_DEFAULT_VERSION"         = "18"
+    "WEBSITE_WEBDEPLOY_USE_SCM"            = "false"
+  }
+
+  site_config = {
+    always_on                         = true
+    http2_enabled                     = true
+    ip_restriction_default_action     = "Allow"
+    scm_ip_restriction_default_action = "Allow"
+    use_32_bit_worker                 = false
+    vnet_route_all_enabled            = true
+    app_command_line                  = "npm start"
+    cors                              = {
+      allowed_origins     = ["https://portal.azure.com"]
+      support_credentials = true
+    }
+    application_stack                 = {
+      python_version = "3.12"
+    }
+  }
+  identity = "SystemAssigned"
+  logs = {
+    detailed_error_messages = true
+    failed_request_tracing  = true
+    application_logs {
+      file_system_level = "Verbose"
+    }
+    http_logs {
+      file_system {
+        retention_in_days = 1
+        retention_in_mb   = 35
+      }
+    }
+  }
+  tags = merge(
+    var.tags,
+    {
+      environment      = var.environment
+      azd-env-name     = var.environment
+      azd-service-name = "adminweb"
+      solution         = "RAG"
+    }
+  )
+  lifecycle = {
+    ignore_changes = [
+      app_settings,
+      tags,
+    ]
+  }
+}
+
 
 resource "azurerm_linux_web_app" "admin_web_app" {
   name                                     = var.admin_web_app_name
@@ -505,7 +582,7 @@ module "admin_web_app_pe" {
   location                        = azurerm_resource_group.rg.location
   resource_group_name             = azurerm_resource_group.rg.name
   private_service_connection_name = "admin-web-app-connection"
-  private_connection_resource_id  = azurerm_linux_web_app.admin_web_app.id
+  private_connection_resource_id  = module.linux_web_app_admin.web_app_id
   subresource_names               = ["sites"]
   environment                     = var.environment
   subnet_id                       = module.subnet[var.subnet_deployment[0].name].subnet_id
