@@ -367,7 +367,6 @@ module "azure_linux_web_app" {
     "WEBSITE_NODE_DEFAULT_VERSION"         = "18"
     "WEBSITE_WEBDEPLOY_USE_SCM"            = "false"
   }
-
   site_config = {
     always_on                         = true
     http2_enabled                     = true
@@ -384,26 +383,26 @@ module "azure_linux_web_app" {
       python_version = "3.12"
     }
   }
+  identity = "SystemAssigned"
   logs = {
     detailed_error_messages = true
     failed_request_tracing  = true
-    application_logs {
+    application_logs = {
       file_system_level = "Verbose"
     }
-    http_logs {
-      file_system {
+    http_logs = {
+      file_system = {
         retention_in_days = 1
         retention_in_mb   = 35
       }
     }
   }
-  identity = "SystemAssigned"
   tags = merge(
     var.tags,
     {
       environment      = var.environment
       azd-env-name     = var.environment
-      azd-service-name = "adminweb"
+      azd-service-name = "web"
       solution         = "RAG"
     }
   )
@@ -484,11 +483,11 @@ module "linux_web_app_admin" {
   logs = {
     detailed_error_messages = true
     failed_request_tracing  = true
-    application_logs {
+    application_logs = {
       file_system_level = "Verbose"
     }
-    http_logs {
-      file_system {
+    http_logs = {
+      file_system = {
         retention_in_days = 1
         retention_in_mb   = 35
       }
@@ -510,7 +509,6 @@ module "linux_web_app_admin" {
     ]
   }
 }
-
 
 resource "azurerm_linux_web_app" "admin_web_app" {
   name                                     = var.admin_web_app_name
