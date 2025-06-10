@@ -6,6 +6,6 @@ resource "azurerm_linux_web_app_slot" "web_app_slot" {
   site_config {
   }
   identity {
-    type = "SystemAssigned"
+    type = var.identity_type
   }
 } 
